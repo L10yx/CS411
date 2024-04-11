@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>CS411 PT1 G43</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        
+<style>
+body {
+    background-color: aquamarine;
+    font-family: Consolas, Helvetica, sans-serif;
+}
+
+input {
+    font-family: Consolas, Helvetica, sans-serif;
+}
+
+h3 {
+    color: darkolivegreen;
+}
+
+table {
+    width: 100%;
+}
+
+table, th, td {
+    border: .5px solid lightgray;
+}
+
+#container {
+    width: 1200px;
+    margin: 30px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 30px;
+    font-size: 1em;
+}
+
+#banner {
+    padding: 15px 30px 15px 30px;
+    background-color: lightgray;
+    color: darkolivegreen;
+    font-size: 2em;
+}
+
+#horizContainer {
+    display: flex;
+    width: auto;
+}
+
+#navigator {
+    flex: 0 0 15%;
+    float: none;
+    padding: 10px 20px;
+    background-color: gray;
+    font-size: 1em;
+}
+
+#navigator a {
+    display: block;
+    text-decoration: none;
+    color: white;
+    margin: 5px 0;
+    padding: 5px 30px;
+}
+
+#navigator a:hover {
+    color: aquamarine;
+}
+
+.navActive {
+    background-color: darkolivegreen;
+}
+
+#content {
+    flex: 1;
+    padding: 20px 20px 20px 60px; /* TRBL; this keeps the text from flowing around the sidebar */
+    margin-left: 0px;
+    background-color: whitesmoke;
+}
+
+.page {
+    display: none;
+}
+
+.pageActive {
+    display: block;
+}
+
+#footer {
+    clear: both;
+    padding: 7.5px;
+    background-color: lightgray;
+    font-size: .75em;
+    text-align: center;
+}
+</style>
+
+<script>
+
+var userId = "root";
+var password = "admin";
+var fgPage = "Home";
+
+</script>
+
+<script>
+
+function isEmpty(obj) {
+    if (obj === null || obj === undefined) return true;
+    if (typeof obj === 'object' && Object.keys(obj).length === 0) return true;
+    if (Array.isArray(obj) && obj.length === 0) return true;
+    return false;
+}
+
+function navigate(Id) {
+    try {
+        if (Id == "_back") {
+            navigate(fgPage);
+            return;
+        }
+        document.querySelectorAll("#content .page").forEach(function(page) {page.classList.remove("pageActive");});
+        document.getElementById("page" + Id).classList.add("pageActive");
+        document.querySelectorAll("#navigator .nav").forEach(function(nav) {nav.classList.remove("navActive");});
+        document.getElementById("nav" + Id).classList.add("navActive");
+        fgPage = Id;
+    } catch(error) {}
+}
+
+function clearHTML(containerId) {
+    try {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+    } catch(error) {alert(error);}
+}
+
+function appendHTML(htmlString, containerId) {
+    try {
+        const container = document.getElementById(containerId);
+        container.innerHTML += htmlString;
+    } catch(error) {alert(error);}
+}
+
+async function postForm(jsonObj, apiName) {
+    try {
+        const response = await fetch(apiName, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(jsonObj)
+        });
+        if (!response.ok) throw new Error("Network response not OK!");
+        return await response.json();
+    } catch (error) {
+        return {};
+    }
+}
+
+///////////////////////////////////////////////////////////////
+
+function loginUser() {
+    try {
+        userId = document.getElementById("userName").value;
+        password = document.getElementById("password").value;
+
+        postForm({
+            "userId": userId,
+            "password": password
+        }, "/loginUser")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("User Not Found!");
+            console.log(res);
+
+            const loginButton = document.getElementById("loginButton");
+            const oldMsg = loginButton.value;
+            loginButton.value = "Logged in!";
+            setTimeout(() => {loginButton.value = oldMsg;}, 2000);
+
+            const userName = res[0]["userName"];
+            document.getElementById("userNickname").value = userName;
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function signupUser() {
+    try {
+        userId = document.getElementById("userName").value;
+        password = document.getElementById("password").value;
+        
+        postForm({
+            "userId": userId,
+            "password": password
+        }, "/signupUser")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("User Already Exists!");
+            console.log(res);
+
+            const signupButton = document.getElementById("signupButton");
+            const oldMsg = signupButton.value;
+            signupButton.value = "Signed up!";
+            setTimeout(() => {signupButton.value = oldMsg;}, 2000);
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function renameUser() {
+    try {
+        userId = document.getElementById("userName").value;
+        password = document.getElementById("password").value;
+        const userName = document.getElementById("userNickname").value;
+
+        postForm({
+            "userId": userId,
+            "password": password,
+            "userName": userName
+        }, "/renameUser")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("User Not Found!");
+            console.log(res);
+
+            const renameButton = document.getElementById("renameButton");
+            const oldMsg = renameButton.value;
+            renameButton.value = "Renamed!";
+            setTimeout(() => {renameButton.value = oldMsg;}, 2000);
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function randBunch() {
+    try {
+        postForm({}, "/randBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No response!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+
+            clearHTML("randBunchTable");
+            Array.from(res).forEach((r) => {
+                const bunchId = r["bunchId"];
+                const bunchName = r["bunchName"];
+                const creator = r["userId"];
+                const numVideos = r["numVideos"];
+                const numLikes = r["numLikes"];
+                const avgViews = r["avargeView"];
+                appendHTML(`<tr><td>${bunchName}</td>\
+                                <td>${creator}</td>\
+                                <td class="nvid${bunchId}">${numVideos}</td>\
+<td>${avgViews}</td>\
+                                <td class="like${bunchId}">${numLikes}</td>\
+                                <td><a href=javascript:bunchLike("${bunchId}")>Like</a></td>\
+                                <td><a href=javascript:forkBunch("${bunchId}")>Fork</a></td>\
+                                <td><a href=javascript:viewBunch("${bunchId}")>View Detail</a></td></tr>\n`,
+                           "randBunchTable");
+            });
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function forkBunch(bunchId) {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password,
+            "bunchId": bunchId
+        }, "/forkBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No response!");
+            console.log(res);
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function userBunch() {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password
+        }, "/userBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No response!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+
+            clearHTML("userBunchTable");
+            Array.from(res).forEach((r) => {
+                const bunchId = r["bunchId"];
+                const bunchName = r["bunchName"];
+                const creator = r["userId"];
+                const numVideos = r["numVideos"];
+                const numLikes = r["numLikes"];
+                const avgViews = r["avargeView"];
+                appendHTML(`<tr><td>${bunchName}</td>\
+                                <td>${creator}</td>\
+                                <td class="nvid${bunchId}">${numVideos}</td>\
+<td>${avgViews}</td>\
+                                <td class="like${bunchId}">${numLikes}</td>\
+                                <td><a href=javascript:bunchLike("${bunchId}")>Like</a></td>\
+                                <td><a href=javascript:viewBunch("${bunchId}")>View Detail</a></td></tr>\n`,
+                           "userBunchTable");
+            });
+        }) 
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function bunchLike(bunchId) {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password,
+            "bunchId": bunchId
+        }, "/bunchLike")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No permission!");
+            else if ("_already_liked" in Array.from(res)[0]) throw new Error("Already liked!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+
+            const numLikes = Array.from(res)[0]["numLikes"];
+            const likeList = document.querySelectorAll(`[class="like${bunchId}"]`);
+            likeList.forEach(like => {like.innerHTML = `${numLikes}`;});
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function viewBunch(bunchId) {
+    try {
+        postForm({
+            "bunchId": bunchId
+        }, "/viewBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No response!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+            
+            clearHTML("viewBunchTable");
+            res.forEach((r) => {
+                const videoId = r["videoId"];
+                const title = r["title"];
+                const categoryName = r["categoryName"];
+                const views = r["viewCount"];
+                const likes = r["likes"];
+                const dislikes = r["dislikes"];
+                const comments = r["commentCount"];
+                appendHTML(`<tr><td>${title}</td>\
+                                <td>${categoryName}</td>\
+                                <td>${views}</td>\
+                                <td>${likes}</td>\
+                                <td>${dislikes}</td>\
+                                <td>${comments}</td>\
+                                <td><a href=javascript:deleteFromBunch("${videoId}","${bunchId}")>Delete from Bunch</a></td></tr>\n`,
+                           "viewBunchTable");
+            });
+            navigate("ViewBunch");
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function deleteFromBunch(videoId, bunchId) {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password,
+            "videoId": videoId,
+            "bunchId": bunchId
+        }, "/deleteFromBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No permission!");
+            console.log(res);
+            
+            const numVideos = Array.from(res)[0]["numVideos"];
+            const nvidList = document.querySelectorAll(`[class="nvid${bunchId}"]`);
+            nvidList.forEach(nvid => {nvid.innerHTML = `${numVideos}`;});
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function searchClick() {
+    try {
+        const searchKey = document.querySelector("#searchKey").value;
+        const searchList = searchKey.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+        const searchDict = {};
+        searchList.forEach((pair) => {
+            let [key, value] = pair.split(/:(?=(?:[^"]*"[^"]*")*[^"]*$)/, 2).map(str => str.trim());
+            if (value == null) {value = key; key = "title";}
+            if (value != null && value != "") searchDict[key] = value.replace(/^"/, "").replace(/"$/, "");
+        });
+        
+        const keyMap = {
+            // "id": "videoId",
+            "title": "title",
+            // "pub": "publishAt",
+            // "publish": "publishAt",
+            "ch": "channelName",
+            "channel": "channelName",
+            "cat": "categoryName",
+            "category": "categoryName"
+            // "trend": "trendingDate",
+            // "trending": "trendingDate"
+        };
+        const searchForm = Object.fromEntries(
+            Object.entries(searchDict).map(
+                ([key, value]) => [keyMap[key] || key, value.replace("*", "%").replace("?", "_")]
+            )
+        );
+        
+        postForm(searchForm, "/searchVideo")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No response!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+
+            clearHTML("searchVideoTable");
+            res.forEach((r) => {
+                const videoId = r["videoId"];
+                const title = r["title"];
+                const categoryName = r["categoryName"];
+                const views = r["viewCount"];
+                const likes = r["likes"];
+                const dislikes = r["dislikes"];
+                const comments = r["commentCount"];
+                appendHTML(`<tr><td>${title}</td>\
+                                <td>${categoryName}</td>\
+                                <td>${views}</td>\
+                                <td>${likes}</td>\
+                                <td>${dislikes}</td>\
+                                <td>${comments}</td>\
+                                <td><a href=javascript:selectBunch("${videoId}")>Add to Bunch</a></td></tr>\n`,
+                           "searchVideoTable");
+            });
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function selectBunch(videoId) {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password
+        }, "/userBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No permission!");
+            else if ("_success" in Array.from(res)[0]) res = [];
+            console.log(res);
+
+            clearHTML("selectBunchTable");
+            Array.from(res).forEach((r) => {
+                const bunchId = r["bunchId"];
+                const bunchName = r["bunchName"];
+                const creator = r["userId"];
+                const numVideos = r["numVideos"];
+                const numLikes = r["numLikes"];
+                const avgViews = r["avargeView"];
+                appendHTML(`<tr><td>${bunchName}</td>\
+                                <td>${creator}</td>\
+                                <td class="nvid${bunchId}">${numVideos}</td>\
+<td>${avgViews}</td>\
+                                <td class="like${bunchId}">${numLikes}</td>\
+                                <td><a href=javascript:addToBunch("${videoId}","${bunchId}")>Confirm</a></td></tr>\n`,
+                           "selectBunchTable");
+            });
+            document.getElementById("newBunchButton").setAttribute("onclick", `addToNewBunch("${videoId}")`);
+            navigate("SelectBunch");
+        }) 
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function addToBunch(videoId, bunchId) {
+    try {
+        postForm({
+            "userId": userId,
+            "password": password,
+            "videoId": videoId,
+            "bunchId": bunchId
+        }, "/addToBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No permission!");
+            else if ("_already_exists" in Array.from(res)[0]) throw new Error("Already exists!");
+            console.log(res);
+            
+            const numVideos = Array.from(res)[0]["numVideos"];
+            const nvidList = document.querySelectorAll(`[class="nvid${bunchId}"]`);
+            nvidList.forEach(nvid => {nvid.innerHTML = `${numVideos}`;});
+
+            navigate("_back");
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+function addToNewBunch(videoId) {
+    try {
+        const bunchName = document.getElementById("newBunchName").value
+        postForm({
+            "userId": userId,
+            "password": password,
+            "videoId": videoId,
+            "bunchName": bunchName
+        }, "/addToNewBunch")
+        .then(res => {
+            if (isEmpty(res)) throw new Error("No permission!");
+            console.log(res);
+            navigate("_back");
+        })
+        .catch(error => {alert(error);});
+    } catch(error) {alert(error);}
+}
+
+</script>
+
+    </head>
+
+    <body>
+        <div id="container">
+            <div id="banner"><b>Tube=Phira:</b> YouTube Trending Video Analyzer</div>
+
+            <div id="horizContainer">
+                <div id="navigator">
+                    <a href="javascript:navigate('Home')" id="navHome" class="nav navActive">Home Page</a>
+                    <a href="javascript:navigate('Bunch')" id="navBunch" class="nav">Bunch List</a>
+                    <a href="javascript:navigate('Login')" id="navLogin" class="nav">Login</a>
+                </div>
+
+                <div id="content">
+                    <div id="pageHome" class="page pageActive">
+                        <h3>Search Videos</h3>
+                        <input type="text" id="searchKey" style="width: 600px;">
+                        <input type="button" value="Search" onclick="searchClick()" style="width: 100px;">
+                        
+                        <table style="margin-top: 20px;">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Views</th>
+                                    <th>Likes</th>
+                                    <th>Dislikes</th>
+                                    <th>Comments</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="searchVideoTable"></tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="pageSelectBunch" class="page">
+                        <a href="javascript:navigate('_back')">&lt; Back</a>
+                        <h3>Select a Bunch</h3>
+                        <table style="margin-top: 20px;">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Creator</th>
+                                    <th># Videos</th>
+<th>Avg. Views</th>
+                                    <th>Likes</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="selectBunchTable"></tbody>
+                        </table>
+                        Or create <input type="text" id="newBunchName" style="width: 600px; margin-top: 20px;">
+                        <input type="button" id="newBunchButton" value="Create" style="width: 100px;">
+                    </div>
+
+                    <div id="pageBunch" class="page">
+                        <h3>
+                            Random Bunches
+                            <input type="button" value="Refresh" onclick="randBunch()">
+                        </h3>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Creator</th>
+                                    <th># Videos</th>
+<th>Avg. Views</th>
+                                    <th>Likes</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="randBunchTable"></tbody>
+                        </table>
+
+                        <h3>
+                            My Bunches
+                            <input type="button" value="Refresh" onclick="userBunch(null,'userBunchTable')">
+                        </h3>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Creator</th>
+                                    <th># Videos</th>
+<th>Avg. Views</th>
+                                    <th>Likes</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userBunchTable"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="pageViewBunch" class="page">
+                        <a href="javascript:navigate('_back')">&lt; Back</a>
+                        <table style="margin-top: 20px;">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Views</th>
+                                    <th>Likes</th>
+                                    <th>Dislikes</th>
+                                    <th>Comments</th>
+                                    <th>&emsp;&emsp;&emsp;&emsp;</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viewBunchTable"></tbody>
+                        </table>
+                    </div>
+
+                    <div id="pageLogin" class="page">
+                        <h3>Log In</h3>
+                        Username: <input type="text" id="userName" style="width: 300px; margin: 0 0 10px 0;"><br/>
+                        Password: <input type="password" id="password" style="width: 300px; margin: 0 0 10px 0;"><br/>
+                        <input type="button" id="loginButton" value="Save" onclick="loginUser()" style="width: 150px; margin: 10px 20px 10px 20px;">
+                        <input type="button" id="signupButton" value="Sign up" onclick="signupUser()" style="width: 150px; margin: 10px 20px 10px 20px;"><br/>
+                        <input type="text" id="userNickname" style="width: 300px; margin: 0 0 10px 0;">
+                        <input type="button" id="renameButton" value="Rename" onclick="renameUser()" style="width: 150px; margin: 10px 20px 10px 20px;">
+                    </div>
+                </div>
+            </div>
+
+            <div id="footer">
+                Copyright &copy; Team 043 Tube=Phira 2023
+            </div>
+        </div>
+    </body>
+</html>
